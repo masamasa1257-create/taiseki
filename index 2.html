@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="体積計算">
+<meta name="application-name" content="体積計算">
+<meta name="theme-color" content="#F5A800">
+<title>体積計算(直方体・錐体・円柱・断面・点高)</title>
+<style>
+  :root{
+    --cover:#F5A800; --cover-dark:#8A5E00; --ink:#14212E; --paper:#FFFFFF;
+    --grid:#C9D2CC; --cut:#D93A2B; --fill:#1D6FE0; --ok:#1E7A46; --faint:#66707E;
+    --strip:#14212E;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{margin:0; background:#E9E5DA; color:var(--ink); font-size:16px;
+    font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-serif;}
+  .mono{font-family:ui-monospace,'SF Mono','Cascadia Mono',Consolas,monospace; font-variant-numeric:tabular-nums;}
+  header{background:var(--cover); border-bottom:5px solid var(--cover-dark); padding:16px 14px 14px;}
+  .wrap{max-width:760px; margin:0 auto;}
+  .eyebrow{font-size:11px; letter-spacing:.35em; color:#5C3D00; font-weight:700;}
+  h1{margin:2px 0 10px; font-size:22px; font-weight:800; color:#2E2000;}
+  main{max-width:760px; margin:0 auto; padding:14px 10px 120px;}
+
+  .totalbar{position:sticky; top:0; z-index:5; background:var(--strip); color:#fff;
+    display:flex; align-items:baseline; justify-content:center; gap:10px;
+    padding:9px 14px; box-shadow:0 2px 8px rgba(0,0,0,.25);}
+  .totalbar .k{font-size:13px; font-weight:700; color:#9FB0C3; letter-spacing:.05em;}
+  .totalbar .v{font-size:26px; font-weight:800; color:#FFD35C;}
+  .totalbar .u{font-size:13px; color:#9FB0C3;}
+
+  .tabs{display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:14px;}
+  .tabs button{padding:12px 0; border-radius:10px; font-weight:800; font-size:14px;
+    border:2px solid var(--ink); background:#fff; color:var(--ink);}
+  .tabs button.on{background:var(--strip); color:#FFD35C; border-color:var(--strip);}
+
+  .modebtns{display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-bottom:10px;}
+  .modebtns button{padding:9px 0; border-radius:8px; font-weight:800; font-size:13px;
+    border:1.5px solid var(--ink); background:#fff; color:var(--ink);}
+  .modebtns button.on{background:var(--strip); color:#FFD35C; border-color:var(--strip);}
+  .secbox{border:1.5px dashed var(--grid); border-radius:10px; padding:11px; margin-top:10px; background:#F8FAF6;}
+  .secbox .sechead{font-size:13px; font-weight:800; color:#4A5462; margin-bottom:8px;}
+  .g5{display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-top:9px;}
+  .g5 input{padding:10px 4px; font-size:16px; text-align:center;}
+  .g5 label.lbl{font-size:11px; text-align:center;}
+  .secarea{margin-top:8px; font-size:14px; font-weight:800; color:var(--ink);}
+  .secarea .mono{font-size:19px;}
+
+  .card{background:var(--paper); border:1px solid var(--grid); border-left:8px solid var(--grid);
+    border-radius:12px; padding:14px; margin-top:12px; box-shadow:0 1px 3px rgba(0,0,0,.06);}
+  .cardhead{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:8px;}
+  .cardhead .left{display:flex; align-items:center; gap:9px;}
+  .num{font-size:14px; font-weight:700; color:var(--faint);}
+  label.lbl{display:block; font-size:12px; font-weight:800; letter-spacing:.06em;
+    color:#4A5462; margin-bottom:4px;}
+  input{width:100%; font-size:19px; padding:11px 10px; border:1.5px solid var(--grid);
+    border-radius:8px; color:var(--ink); background:#fff; outline:none;
+    font-family:ui-monospace,'SF Mono',Consolas,monospace; font-variant-numeric:tabular-nums;}
+  input:focus{border-color:var(--cover-dark); background:#FFFDF4;}
+  input.title-in{background:#FFF6DB; border:1.5px solid var(--cover-dark); font-size:15px; font-family:inherit; padding:9px 10px;}
+  .g2{display:grid; grid-template-columns:1fr 1fr; gap:9px;}
+  .g3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px;}
+  .hrow{display:grid; grid-template-columns:.6fr 1fr 30px; gap:8px; align-items:end; margin-top:8px;}
+  .hrow:first-of-type{margin-top:0;}
+
+  .result{margin-top:10px; background:var(--strip); border-radius:8px;
+    padding:9px 12px; display:flex; flex-wrap:wrap; gap:6px 20px; align-items:baseline;}
+  .rkey{font-size:12px; font-weight:800; color:#9FB0C3; letter-spacing:.05em;}
+  .rval{font-size:26px; font-weight:800; color:#fff;}
+  .rsub{font-size:13px; color:#9FB0C3;}
+  .subtotal{margin-top:12px; background:#FFF6DB; border:1.5px solid var(--cover-dark); border-radius:10px;
+    padding:11px 14px; display:flex; align-items:baseline; gap:9px; flex-wrap:wrap;}
+  .subtotal .rkey{color:#7A5800;}
+  .subtotal .stv{font-size:28px; font-weight:800; color:#2E2000;}
+
+  button{cursor:pointer; font-family:inherit;}
+  .xbtn{border:none; background:transparent; color:var(--faint); font-size:20px; padding:8px 2px;}
+  .delbtn{border:1px solid var(--grid); background:#fff; border-radius:8px;
+    color:var(--faint); font-size:13px; font-weight:700; padding:6px 11px;}
+  .addbtn{margin-top:12px; width:100%; padding:14px 0; border-radius:11px; border:none;
+    background:var(--strip); color:#FFD35C; font-weight:800; font-size:15px;}
+  .addh{margin-top:10px; width:100%; padding:10px 0; border-radius:9px; border:1.5px dashed var(--ink);
+    background:transparent; color:var(--ink); font-weight:800; font-size:14px;}
+  .copybtn{margin-top:16px; width:100%; padding:15px 0; border-radius:11px; border:2.5px solid var(--cover-dark);
+    background:var(--cover); color:#2E2000; font-weight:800; font-size:16px;}
+  .sharebtn{margin-top:10px; width:100%; padding:14px 0; border-radius:11px; border:2px solid var(--ink);
+    background:#fff; color:var(--ink); font-weight:800; font-size:15px;}
+  .resetbtn{margin-top:10px; width:100%; padding:11px 0; border-radius:11px; border:1.5px solid var(--faint);
+    background:transparent; color:var(--faint); font-weight:700; font-size:13px;}
+  .note{margin-top:12px; font-size:12px; color:var(--faint); line-height:1.8;}
+  .hint{font-size:12px; color:var(--faint); margin-top:8px; line-height:1.6;}
+  textarea#fallback{width:100%; height:140px; margin-top:8px; font-size:12px; display:none;
+    font-family:ui-monospace,Consolas,monospace;}
+  .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:var(--ink); color:#fff;
+    padding:12px 20px; border-radius:999px; font-size:15px; font-weight:700; opacity:0; transition:opacity .25s; pointer-events:none; z-index:9;}
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="eyebrow mono">VOLUME BOOK</div>
+    <h1>体積計算</h1>
+    <input id="title" class="title-in" placeholder="工事名・箇所名(例:0271 掘削土量 A工区)">
+  </div>
+</header>
+
+<div class="totalbar">
+  <span class="k">総合計</span>
+  <span id="grandTotal" class="v mono">0.000</span>
+  <span class="u">m³</span>
+</div>
+
+<main>
+  <div class="tabs">
+    <button id="tab-chokuho" onclick="setTab('chokuho')">直方体</button>
+    <button id="tab-suitai" onclick="setTab('suitai')">角錐台</button>
+    <button id="tab-enchu" onclick="setTab('enchu')">円柱</button>
+    <button id="tab-ensui" onclick="setTab('ensui')">円錐</button>
+    <button id="tab-danmen" onclick="setTab('danmen')">平均断面</button>
+    <button id="tab-tenko" onclick="setTab('tenko')">点高法</button>
+  </div>
+
+  <div id="panel"></div>
+
+  <div class="subtotal">
+    <span class="rkey" id="stLabel">直方体の小計</span>
+    <span id="subTotal" class="mono stv">0.000</span>
+    <span class="rkey" style="font-weight:400;">m³</span>
+  </div>
+
+  <button class="copybtn" onclick="copyTable()">結果をコピー(Excel貼り付け用)</button>
+  <button class="sharebtn" onclick="shareCSV()">メール・LINEで送る(Excelファイル)</button>
+  <textarea id="fallback" readonly></textarea>
+  <button class="resetbtn" onclick="resetAll()">全部消して新しいページにする</button>
+
+  <p class="note">
+    直方体:縦×横×高さ/角錐台:上面・中間・下面の3断面から計算(擬柱公式)/円柱:π×(直径÷2)²×高さ/円錐:円柱÷3/
+    平均断面:断面①②を台形(上幅+下幅)÷2×高さで求め、(断面①+断面②)÷2×延長/点高法:マスの縦×横×各マスの平均高の合計。
+    タブごとの小計と、全部を足した総合計(上の黒帯)が出ます。入力内容はこの端末に自動保存されます。
+  </p>
+</main>
+
+<div id="toast" class="toast">コピーしました ✓</div>
+
+<script>
+"use strict";
+const KEY = "taiseki-v1";
+let idSeq = 1;
+const nid = ()=>idSeq++;
+
+const METHODS = ["chokuho","suitai","enchu","ensui","danmen","tenko"];
+const NAMES = {chokuho:"直方体", suitai:"角錐台", enchu:"円柱", ensui:"円錐", danmen:"平均断面", tenko:"点高法"};
+
+function defState(){
+  return {
+    title:"", tab:"chokuho",
+    chokuho:[{id:nid(), a:"", b:"", h:""}],
+    suitai:[{id:nid(), a1:"", b1:"", a2:"", b2:"", h:""}],
+    enchu:[{id:nid(), d:"", h:""}],
+    ensui:[{id:nid(), d:"", h:""}],
+    danmen:[{id:nid(), mode:"dai", u1:"", s1:"", h1s:["","","","",""], u2:"", s2:"", h2s:["","","","",""], a1:"", a2:"", l:""}],
+    tenko:[{id:nid(), a:"", b:"", hs:[{id:nid(),v:""}]}]
+  };
+}
+
+let state = load() || defState();
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return null;
+    const s = JSON.parse(raw);
+    let max = 0;
+    METHODS.forEach(k=>{
+      (s[k]||[]).forEach(r=>{
+        max = Math.max(max, r.id||0);
+        (r.hs||[]).forEach(p=>{ max = Math.max(max, p.id||0); });
+      });
+    });
+    idSeq = max + 1;
+    (s.danmen||[]).forEach(r=>{
+      if(!r.h1s) r.h1s = [r.h1||"","","","",""];
+      if(!r.h2s) r.h2s = [r.h2||"","","","",""];
+    });
+    return s;
+  }catch(e){ return null; }
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+}
+
+function parseNum(s){
+  if(s===""||s===null||s===undefined) return null;
+  const n = parseFloat(String(s).replace(/[０-９.]/g, ch => ch==="."?".":String.fromCharCode(ch.charCodeAt(0)-0xFEE0)));
+  return isNaN(n) ? null : n;
+}
+function fmt(v){ return (v===null||v===undefined||isNaN(v)) ? "—" : v.toFixed(3); }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;"); }
+
+// ---------- 計算 ----------
+function volChokuho(r){
+  const a=parseNum(r.a), b=parseNum(r.b), h=parseNum(r.h);
+  return (a!==null&&b!==null&&h!==null&&a>0&&b>0&&h>0) ? a*b*h : null;
+}
+function volSuitai(r){
+  const a1=parseNum(r.a1), b1=parseNum(r.b1), a2=parseNum(r.a2), b2=parseNum(r.b2), h=parseNum(r.h);
+  if(a1===null||b1===null||a2===null||b2===null||h===null) return null;
+  if(a1<0||b1<0||a2<0||b2<0||h<=0) return null;
+  const A1 = a1*b1;                       // 上面の面積
+  const A2 = a2*b2;                       // 下面の面積
+  const Am = ((a1+a2)/2)*((b1+b2)/2);     // 中間断面の面積
+  return h/6*(A1 + 4*Am + A2);            // 擬柱公式
+}
+function volEnchu(r){
+  const d=parseNum(r.d), h=parseNum(r.h);
+  return (d!==null&&h!==null&&d>0&&h>0) ? Math.PI*(d/2)*(d/2)*h : null;
+}
+function volEnsui(r){
+  const v = volEnchu(r);
+  return v===null ? null : v/3;
+}
+function danmenH(r, which){
+  const hs = (which===1 ? r.h1s : r.h2s).map(parseNum).filter(v=>v!==null&&v>0);
+  if(hs.length===0) return null;
+  return hs.reduce((t,v)=>t+v,0)/hs.length;
+}
+function danmenA(r, which){
+  if(r.mode==="choku"){
+    const a = parseNum(which===1 ? r.a1 : r.a2);
+    return (a!==null && a>=0) ? a : null;
+  }
+  const u = parseNum(which===1 ? r.u1 : r.u2);
+  const s = parseNum(which===1 ? r.s1 : r.s2);
+  const h = danmenH(r, which);
+  return (u!==null&&s!==null&&h!==null&&u>=0&&s>=0) ? (u+s)/2*h : null;
+}
+function volDanmen(r){
+  const A1 = danmenA(r,1), A2 = danmenA(r,2), l = parseNum(r.l);
+  return (A1!==null&&A2!==null&&l!==null&&l>0) ? (A1+A2)/2*l : null;
+}
+function volTenko(r){
+  const a=parseNum(r.a), b=parseNum(r.b);
+  if(a===null||b===null||a<=0||b<=0) return null;
+  const hs = r.hs.map(p=>parseNum(p.v)).filter(v=>v!==null);
+  if(hs.length===0) return null;
+  return a*b*hs.reduce((t,v)=>t+v,0);
+}
+function rowVol(m,r){
+  if(m==="chokuho") return volChokuho(r);
+  if(m==="suitai") return volSuitai(r);
+  if(m==="enchu") return volEnchu(r);
+  if(m==="ensui") return volEnsui(r);
+  if(m==="danmen") return volDanmen(r);
+  return volTenko(r);
+}
+function methodTotal(m){
+  let t=0;
+  state[m].forEach(r=>{
+    const v=rowVol(m,r);
+    if(typeof v==="number") t+=v;
+  });
+  return t;
+}
+function grandTotal(){
+  return METHODS.reduce((t,m)=>t+methodTotal(m),0);
+}
+
+// ---------- 表示更新 ----------
+function recalc(){
+  const m = state.tab;
+  state[m].forEach(r=>{
+    const el = document.querySelector('[data-vol="'+r.id+'"]');
+    if(!el) return;
+    const v = rowVol(m,r);
+    el.innerHTML = '<span class="mono rval">'+fmt(v)+'</span> <span class="rsub">m³</span>';
+    if(m==="danmen"){
+      const e1 = document.querySelector('[data-da1="'+r.id+'"]');
+      const e2 = document.querySelector('[data-da2="'+r.id+'"]');
+      const f1 = document.querySelector('[data-dh1="'+r.id+'"]');
+      const f2 = document.querySelector('[data-dh2="'+r.id+'"]');
+      if(e1) e1.textContent = fmt(danmenA(r,1));
+      if(e2) e2.textContent = fmt(danmenA(r,2));
+      if(f1) f1.textContent = fmt(danmenH(r,1));
+      if(f2) f2.textContent = fmt(danmenH(r,2));
+    }
+  });
+  const st = methodTotal(m);
+  document.getElementById("stLabel").textContent = NAMES[m]+"の小計";
+  document.getElementById("subTotal").textContent = st.toFixed(3);
+  document.getElementById("grandTotal").textContent = grandTotal().toFixed(3);
+}
+
+function inputHTML(m, r, f, label, ph){
+  return '<div><label class="lbl">'+label+'</label>'+
+    '<input inputmode="decimal" value="'+esc(r[f])+'" placeholder="'+ph+'" data-m="'+m+'" data-row="'+r.id+'" data-f="'+f+'"></div>';
+}
+
+function buildPanel(){
+  METHODS.forEach(k=>{
+    document.getElementById("tab-"+k).className = (state.tab===k) ? "on" : "";
+  });
+  const box = document.getElementById("panel");
+  box.innerHTML = "";
+  const m = state.tab;
+  state[m].forEach((r,i)=>{
+    const sec = document.createElement("section");
+    sec.className = "card";
+    const head =
+      '<div class="cardhead"><div class="left">'+
+      '<span class="num mono">'+String(i+1).padStart(2,"0")+'</span>'+
+      '<span class="num">'+NAMES[m]+'</span>'+
+      '</div><button class="delbtn" onclick="removeRow(\''+m+'\','+r.id+')">削除</button></div>';
+    let body = "";
+    if(m==="chokuho"){
+      body = '<div class="g3">'+
+        inputHTML(m,r,"a","縦 (m)","8.000")+
+        inputHTML(m,r,"b","横 (m)","12.500")+
+        inputHTML(m,r,"h","高さ (m)","1.500")+
+        '</div>';
+    }else if(m==="suitai"){
+      body = '<div class="g2">'+
+        inputHTML(m,r,"a1","上面の縦 (m)","3.000")+
+        inputHTML(m,r,"b1","上面の横 (m)","4.000")+
+        inputHTML(m,r,"a2","下面の縦 (m)","5.000")+
+        inputHTML(m,r,"b2","下面の横 (m)","6.000")+
+        '</div>'+
+        '<div class="g2" style="margin-top:9px;">'+
+        inputHTML(m,r,"h","高さ (m)","1.200")+
+        '<span></span>'+
+        '</div>'+
+        '<p class="hint">残土の山や掘削の穴など、上と下で大きさが違う形に。上面を0にすれば先のとがった四角錐になります。</p>';
+    }else if(m==="enchu" || m==="ensui"){
+      body = '<div class="g2">'+
+        inputHTML(m,r,"d","直径 (m)","1.000")+
+        inputHTML(m,r,"h","高さ (m)","2.500")+
+        '</div>';
+    }else if(m==="danmen"){
+      const dai = (r.mode!=="choku");
+      body =
+        '<div class="modebtns">'+
+        '<button class="'+(dai?"on":"")+'" onclick="setDanMode('+r.id+',\'dai\')">断面を台形から計算</button>'+
+        '<button class="'+(dai?"":"on")+'" onclick="setDanMode('+r.id+',\'choku\')">断面積を直接入力</button>'+
+        '</div>';
+      if(dai){
+        const hRow = (which)=>{
+          const hs = which===1 ? r.h1s : r.h2s;
+          return '<div class="g5">'+hs.map((v,j)=>
+            '<div><label class="lbl">高さ'+(j+1)+'</label>'+
+            '<input inputmode="decimal" value="'+esc(v)+'" placeholder="—" data-m="danmen" data-row="'+r.id+'" data-hf="'+which+'" data-idx="'+j+'"></div>'
+          ).join("")+'</div>';
+        };
+        body +=
+          '<div class="secbox"><div class="sechead">断面①(始点側)</div>'+
+          '<div class="g2">'+
+          inputHTML(m,r,"u1","上幅 (m)","4.200")+
+          inputHTML(m,r,"s1","下幅 (m)","2.000")+
+          '</div>'+
+          hRow(1)+
+          '<div class="secarea">平均高 = <span class="mono" data-dh1="'+r.id+'">—</span> m/断面積① = <span class="mono" data-da1="'+r.id+'">—</span> m²</div>'+
+          '</div>'+
+          '<div class="secbox"><div class="sechead">断面②(終点側)</div>'+
+          '<div class="g2">'+
+          inputHTML(m,r,"u2","上幅 (m)","4.600")+
+          inputHTML(m,r,"s2","下幅 (m)","2.000")+
+          '</div>'+
+          hRow(2)+
+          '<div class="secarea">平均高 = <span class="mono" data-dh2="'+r.id+'">—</span> m/断面積② = <span class="mono" data-da2="'+r.id+'">—</span> m²</div>'+
+          '</div>'+
+          '<p class="hint">高さは1〜5ヶ所まで入力できます。入力したぶんだけの平均を使います。</p>';
+      }else{
+        body +=
+          '<div class="g2">'+
+          inputHTML(m,r,"a1","断面積① (m²)","12.500")+
+          inputHTML(m,r,"a2","断面積② (m²)","14.200")+
+          '</div>';
+      }
+      body +=
+        '<div class="g2" style="margin-top:10px;">'+
+        inputHTML(m,r,"l","延長 (m)","20.000")+
+        '<span></span>'+
+        '</div>';
+    }else{
+      body = '<div class="g2">'+
+        inputHTML(m,r,"a","マスの縦 (m)","5.000")+
+        inputHTML(m,r,"b","マスの横 (m)","5.000")+
+        '</div>'+
+        '<p class="hint" style="margin-top:10px;">各マスの平均高(4隅の高さの平均)を1マスずつ入力してください。</p>';
+      body += r.hs.map((p,j)=>
+        '<div class="hrow">'+
+        '<div><label class="lbl">マス</label><div class="mono" style="font-size:18px;font-weight:800;padding:11px 0;">'+(j+1)+'</div></div>'+
+        '<div><label class="lbl">平均高 (m)</label><input inputmode="decimal" value="'+esc(p.v)+'" placeholder="0.850" data-m="tenko" data-row="'+r.id+'" data-hs="'+p.id+'"></div>'+
+        (r.hs.length>1
+          ? '<button class="xbtn" onclick="removeH('+r.id+','+p.id+')">×</button>'
+          : '<span></span>')+
+        '</div>'
+      ).join("");
+      body += '<button class="addh" onclick="addH('+r.id+')">+ マスを追加</button>';
+    }
+    sec.innerHTML = head + body +
+      '<div class="result"><span class="rkey">体積</span><span data-vol="'+r.id+'"><span class="mono rval">—</span></span></div>';
+    box.appendChild(sec);
+  });
+  const add = document.createElement("button");
+  add.className = "addbtn";
+  add.textContent = "+ "+NAMES[m]+"を追加";
+  add.onclick = ()=>addRow(m);
+  box.appendChild(add);
+  recalc();
+}
+
+function setTab(m){ state.tab=m; save(); buildPanel(); }
+
+document.addEventListener("input", e=>{
+  const t = e.target;
+  if(!(t instanceof HTMLInputElement)) return;
+  if(t.id==="title"){ state.title=t.value; save(); return; }
+  const m = t.dataset.m;
+  if(!m) return;
+  const row = state[m].find(r=>r.id==t.dataset.row);
+  if(!row) return;
+  if(t.dataset.hs){
+    const p = row.hs.find(x=>x.id==t.dataset.hs);
+    if(p) p.v = t.value;
+  }else if(t.dataset.hf){
+    const arr = (t.dataset.hf==="1") ? row.h1s : row.h2s;
+    arr[Number(t.dataset.idx)] = t.value;
+  }else{
+    row[t.dataset.f] = t.value;
+  }
+  save(); recalc();
+});
+
+function addRow(m){
+  if(m==="chokuho") state.chokuho.push({id:nid(), a:"", b:"", h:""});
+  else if(m==="suitai") state.suitai.push({id:nid(), a1:"", b1:"", a2:"", b2:"", h:""});
+  else if(m==="enchu") state.enchu.push({id:nid(), d:"", h:""});
+  else if(m==="ensui") state.ensui.push({id:nid(), d:"", h:""});
+  else if(m==="danmen") state.danmen.push({id:nid(), mode:"dai", u1:"", s1:"", h1s:["","","","",""], u2:"", s2:"", h2s:["","","","",""], a1:"", a2:"", l:""});
+  else state.tenko.push({id:nid(), a:"", b:"", hs:[{id:nid(),v:""}]});
+  save(); buildPanel();
+}
+function setDanMode(rowId, mode){
+  const r = state.danmen.find(x=>x.id===rowId);
+  if(r){ r.mode = mode; save(); buildPanel(); }
+}
+function removeRow(m,id){
+  state[m] = state[m].filter(r=>r.id!==id);
+  if(state[m].length===0) addRow(m); else { save(); buildPanel(); }
+}
+function addH(rowId){
+  const r = state.tenko.find(x=>x.id===rowId);
+  if(r){ r.hs.push({id:nid(),v:""}); save(); buildPanel(); }
+}
+function removeH(rowId, hId){
+  const r = state.tenko.find(x=>x.id===rowId);
+  if(r && r.hs.length>1){ r.hs = r.hs.filter(p=>p.id!==hId); save(); buildPanel(); }
+}
+function resetAll(){
+  if(!confirm("入力内容をすべて消去します。よろしいですか?")) return;
+  state = defState();
+  save();
+  document.getElementById("title").value = "";
+  buildPanel();
+}
+
+// ---------- 出力 ----------
+function outRows(){
+  const R = [];
+  R.push(["区分","No.","入力値","体積(m³)"]);
+  const push = (name,i,dims,v)=>{
+    R.push([name, i, dims, (typeof v==="number")?v.toFixed(3):""]);
+  };
+  state.chokuho.forEach((r,i)=>{
+    if(r.a!==""||r.b!==""||r.h!=="") push("直方体", i+1, "縦"+r.a+"×横"+r.b+"×高"+r.h, volChokuho(r));
+  });
+  state.suitai.forEach((r,i)=>{
+    if(r.a1!==""||r.b1!==""||r.a2!==""||r.b2!==""||r.h!=="")
+      push("角錐台", i+1, "上"+r.a1+"×"+r.b1+" 下"+r.a2+"×"+r.b2+" 高"+r.h, volSuitai(r));
+  });
+  state.enchu.forEach((r,i)=>{
+    if(r.d!==""||r.h!=="") push("円柱", i+1, "直径"+r.d+"×高"+r.h, volEnchu(r));
+  });
+  state.ensui.forEach((r,i)=>{
+    if(r.d!==""||r.h!=="") push("円錐", i+1, "直径"+r.d+"×高"+r.h+"÷3", volEnsui(r));
+  });
+  state.danmen.forEach((r,i)=>{
+    const A1 = danmenA(r,1), A2 = danmenA(r,2);
+    const filled = (r.mode!=="choku")
+      ? (r.u1!==""||r.s1!==""||r.u2!==""||r.s2!==""||r.l!==""||r.h1s.some(v=>v!=="")||r.h2s.some(v=>v!==""))
+      : (r.a1!==""||r.a2!==""||r.l!=="");
+    if(filled) push("平均断面", i+1,
+      "A1:"+(A1===null?"—":A1.toFixed(3))+"m² A2:"+(A2===null?"—":A2.toFixed(3))+"m² L:"+r.l+"m",
+      volDanmen(r));
+  });
+  state.tenko.forEach((r,i)=>{
+    const n=r.hs.filter(p=>p.v!=="").length;
+    if(n>0) push("点高法", i+1, "マス"+r.a+"×"+r.b+"×"+n+"区画", volTenko(r));
+  });
+  R.push(["総合計","","",grandTotal().toFixed(3)]);
+  return R;
+}
+function buildTSV(){
+  const L=[];
+  if(state.title) L.push(state.title);
+  outRows().forEach(r=>L.push(r.join("\t")));
+  return L.join("\n");
+}
+function csvEsc(v){
+  const s = String(v==null?"":v);
+  return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+function buildCSV(){
+  const L=[];
+  if(state.title) L.push(csvEsc(state.title));
+  outRows().forEach(r=>L.push(r.map(csvEsc).join(",")));
+  return "\uFEFF" + L.join("\r\n");
+}
+
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 1800);
+}
+function copyTable(){
+  const text = buildTSV();
+  const done = ()=>toast("コピーしました ✓ Excelにそのまま貼り付けできます");
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text, done));
+  }else{
+    fallbackCopy(text, done);
+  }
+}
+function fallbackCopy(text, done){
+  const ta = document.getElementById("fallback");
+  ta.style.display = "block";
+  ta.value = text;
+  ta.focus(); ta.select();
+  try{
+    if(document.execCommand("copy")){ done(); ta.style.display="none"; return; }
+  }catch(e){}
+  toast("下の枠を長押しして全選択→コピーしてください");
+}
+async function shareCSV(){
+  const d = new Date();
+  const pad = n=>String(n).padStart(2,"0");
+  const stamp = d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate());
+  const base = (state.title||"体積計算").replace(/[\\/:*?"<>|\s]/g,"_").slice(0,30);
+  const fname = "体積_"+base+"_"+stamp+".csv";
+  const blob = new Blob([buildCSV()], {type:"text/csv"});
+  const file = new File([blob], fname, {type:"text/csv"});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file], title:fname});
+      return;
+    }catch(err){
+      if(err && err.name==="AbortError") return;
+    }
+  }
+  try{
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 5000);
+    toast("保存を開始しました(出ない場合はSafariで開いてお試しください)");
+  }catch(e){
+    toast("この画面では送れません。Safariで開いてお試しください");
+  }
+}
+
+// ---------- 初期化 ----------
+document.getElementById("title").value = state.title||"";
+buildPanel();
+
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch(()=>{});
+}
+</script>
+</body>
+</html>
